@@ -1,0 +1,665 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poppy MX</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#f5f4f0; --panel:#fff; --panel2:#f0ede8; --border:#dbd8d0;
+  --accent:#2d5be3; --accent-light:#e8eeff; --text:#1a1a1a; --muted:#6b6760;
+  --success:#1a7a4a; --warn:#9a5a00; --rule:#e0ddd8;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif; --r:6px;
+}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;}
+header{background:var(--text);color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:3px solid var(--accent);}
+.hl{display:flex;align-items:center;gap:14px;}
+.logo{font-family:var(--mono);font-size:11px;background:var(--accent);color:#fff;padding:4px 8px;border-radius:3px;}
+h1{font-size:14px;font-weight:500;color:#fff;}
+.sub{font-size:11px;color:rgba(255,255,255,0.45);font-family:var(--mono);}
+.dot{width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0;transition:background .3s;}
+.dot.ok{background:#3ecf8e;} .dot.load{background:var(--warn);animation:pulse 1s infinite;} .dot.err{background:#f76f6f;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.app{display:flex;flex:1;overflow:hidden;}
+#map{flex:1;background:#e8e0d8;}
+.sb{width:320px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sc{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;}
+.sc::-webkit-scrollbar{width:4px;} .sc::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);}
+.ch{padding:8px 12px;background:var(--panel2);border-bottom:1px solid var(--border);font-size:10px;font-family:var(--mono);letter-spacing:.1em;color:var(--muted);text-transform:uppercase;border-radius:var(--r) var(--r) 0 0;}
+.cb{padding:12px;}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;font-family:var(--mono);}
+input[type=text],input[type=number],select{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-family:var(--sans);color:var(--text);outline:none;}
+input:focus,select:focus{border-color:var(--accent);}
+.row{display:flex;gap:8px;} .row>*{flex:1;}
+.btn{width:100%;padding:9px 12px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.btn:hover{opacity:.88;} .btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.out{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+.btn.sm{font-size:12px;padding:7px 10px;}
+#sug{position:fixed;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);max-height:180px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none;}
+.si{padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--rule);}
+.si:hover{background:var(--accent-light);}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.st{background:var(--panel2);border-radius:var(--r);padding:10px 12px;border:1px solid var(--border);}
+.sl{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;}
+.sv{font-size:22px;font-weight:600;line-height:1.2;margin-top:2px;} .sv.ac{color:var(--accent);}
+.ss{font-size:10px;color:var(--muted);margin-top:2px;}
+.nb{display:inline-block;font-family:var(--mono);font-weight:700;font-size:20px;padding:2px 10px;border-radius:4px;margin-top:2px;}
+.nAB{background:#1a3a6e;color:#fff;} .nCp{background:#2d5be3;color:#fff;} .nC{background:#5b8ff9;color:#fff;}
+.nCm{background:#93b8fc;color:#1a1a1a;} .nDp{background:#f7b64f;color:#1a1a1a;} .nD{background:#e07b39;color:#fff;} .nE{background:#c0392b;color:#fff;}
+.lt{width:100%;border-collapse:collapse;font-size:12px;}
+.lt th{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
+.lt td{padding:5px 6px;border-bottom:1px solid var(--rule);}
+.lt tr:last-child td{border-bottom:none;}
+.tag{background:var(--accent-light);color:var(--accent);font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;display:inline-block;}
+.rw{position:relative;} .rv{position:absolute;right:0;top:-2px;font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:500;}
+input[type=range]{width:100%;margin-top:18px;accent-color:var(--accent);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-family:var(--mono);transition:transform .3s;z-index:10000;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.div{height:1px;background:var(--rule);margin:4px 0;}
+.ld{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+#ps{display:none;padding:16px;background:var(--panel);border-left:1px solid var(--border);width:320px;flex-shrink:0;overflow-y:auto;font-size:12px;}
+#ps h2{font-size:11px;font-family:var(--mono);letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
+.leaflet-control-zoom{border:1px solid var(--border)!important;border-radius:var(--r)!important;}
+#mapOverlay{position:absolute;inset:0;background:#e8e0d8;z-index:1000;display:flex;align-items:center;justify-content:center;pointer-events:none;transition:opacity .4s;}
+#mapOverlay.hidden{opacity:0;}
+.leaflet-tile-container{pointer-events:none;}
+.leaflet-tile{transition:none!important;opacity:1!important;}
+.leaflet-fade-anim .leaflet-tile{transition:none!important;}
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:none!important;}
+.leaflet-fade-anim .leaflet-popup{transition:none!important;}
+.leaflet-overlay-pane svg{shape-rendering:optimizeSpeed;}
+@media print{
+  body>header,.app{display:none!important;}
+  #pp{display:block!important;position:static!important;overflow:visible!important;padding:24px;}
+  #printMapDiv{height:340px!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .leaflet-control-attribution{font-size:8px!important;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hl">
+    <span class="logo">Poppy MX</span>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px"><h1>Population Buffer Analyzer</h1><span class="dot" id="dot"></span></div>
+      <div class="sub" id="stxt">loading…</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn out sm" onclick="togglePrint()" id="pBtn" style="width:auto;padding:6px 14px" disabled>⎙ Print</button>
+    <button class="btn sm" onclick="clearAll()" style="width:auto;padding:6px 12px;background:#b0282033;color:#c0392b;border:1px solid #c0392b44" id="cBtn" disabled>✕ Clear</button>
+  </div>
+</header>
+
+<div class="app">
+  <div style="position:relative;flex:1;overflow:hidden;">
+    <div id="map" style="position:absolute;inset:0;"></div>
+    <div id="mapOverlay"><span style="font-family:var(--mono);font-size:12px;color:#6b6760">loading map…</span></div>
+  </div>
+
+  <div class="sb">
+    <div class="sc">
+
+      <div class="card">
+        <div class="ch">📍 Location</div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:10px">
+          <div style="position:relative">
+            <label>Address or place</label>
+            <input type="text" id="addr" placeholder="e.g. Av. Masaryk, CDMX" autocomplete="off"/>
+            <div id="sug"></div>
+          </div>
+          <button class="btn" id="gBtn" onclick="doGeocode()" disabled>Search Location</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch">⬤ Buffer</div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:14px">
+          <div class="rw">
+            <label></label>
+            <span class="rv" id="bDisp">1.0 km</span>
+            <input type="range" id="bSlide" min="0.1" max="25" step="0.1" value="1"
+              oninput="updDisp(this.value)" onchange="syncFromSlide(this.value)"/>
+          </div>
+          <div class="row">
+            <div><label>Distance</label><input type="number" id="bDist" value="1" min="0.1" step="0.1" onchange="syncSlide(this.value);if(pin)scheduleAnalyze()"/></div>
+            <div><label>Units</label><select id="bUnit" onchange="if(pin)scheduleAnalyze()"><option value="kilometers">km</option><option value="miles">mi</option></select></div>
+          </div>
+          <button class="btn" id="aBtn" onclick="analyze()" disabled>Run Analysis</button>
+        </div>
+      </div>
+
+      <div class="card" id="resCard" style="display:none">
+        <div class="ch">📊 Results</div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:10px">
+          <div class="sg">
+            <div class="st"><div class="sl">Population</div><div class="sv ac" id="rPop">—</div><div class="ss">area-weighted</div></div>
+            <div class="st"><div class="sl">Manzanas</div><div class="sv" id="rBG">—</div><div class="ss">intersected</div></div>
+            <div class="st"><div class="sl">Buffer Area</div><div class="sv" id="rArea">—</div><div class="ss" id="rAreaU">sq km</div></div>
+            <div class="st"><div class="sl">Open POI</div><div class="sv" id="rPOI">—</div><div class="ss">within buffer</div></div>
+          </div>
+
+          <div style="background:var(--panel2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px">
+            <div style="font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Avg SE Score</div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="nb" id="nseBadge">—</span>
+              <div><div style="font-size:13px;font-weight:600" id="nseVal">—</div><div style="font-size:10px;color:var(--muted)" id="nseZones"></div></div>
+            </div>
+            <div style="margin-top:8px;display:none" id="nseBar">
+              <div id="nseBarEl" style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px"></div>
+              <div id="nseLeg" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
+            </div>
+          </div>
+
+          <div class="div"></div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--muted)">POI by category</div>
+          <div id="poiCatsInline" style="display:none;flex-direction:column;gap:0;margin-top:4px"></div>
+
+          <div class="div"></div>
+          <div style="font-size:11px;font-family:var(--mono);color:var(--muted)">Manzana breakdown</div>
+          <div style="overflow-x:auto;max-height:180px;overflow-y:auto">
+            <table class="lt"><thead><tr><th>ID</th><th>Pop</th><th>%</th><th>Contrib</th></tr></thead><tbody id="bgTb"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch">🗂 Layers</div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px">
+            <div style="display:flex;align-items:center;gap:6px"><span class="ld" style="background:#2d5be3"></span><span>Population</span></div>
+            <span id="popSt" style="font-family:var(--mono);font-size:10px;color:var(--muted)">—</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px">
+            <div style="display:flex;align-items:center;gap:6px"><span class="ld" style="background:#e07b39"></span><span>Open POI</span></div>
+            <span id="poiSt" style="font-family:var(--mono);font-size:10px;color:var(--muted)">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="ps">
+    <h2>Print</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label>Title</label><input type="text" id="pTitle" value="Population Buffer Analysis"/></div>
+      <div><label>Subtitle</label><input type="text" id="pSub" placeholder="Jollibee — LATAM"/></div>
+      <div><label>Notes</label><textarea id="pNotes" style="width:100%;padding:8px;font-size:12px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--sans);min-height:60px;resize:vertical;background:var(--bg);color:var(--text)"></textarea></div>
+      <button class="btn" onclick="doPrint()">⎙ Print / PDF</button>
+      <button class="btn out" onclick="togglePrint()">← Back</button>
+    </div>
+  </div>
+</div>
+
+<div id="pp" style="display:none;padding:32px;position:fixed;inset:0;overflow-y:auto;z-index:9998;background:#fff"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+<script>
+const CFG = { popF:'POBTOT', nseF:'score_nse' };
+const NSE_C = {'A/B':'#1a3a6e','C+':'#2d5be3','C':'#5b8ff9','C-':'#93b8fc','D+':'#f7b64f','D':'#e07b39','E':'#c0392b'};
+const NSE_CL = {'A/B':'nAB','C+':'nCp','C':'nC','C-':'nCm','D+':'nDp','D':'nD','E':'nE'};
+const SBBOX = {
+  "01":[-103,21.6,-101.7,22.6],"02":[-118.4,28,-113.8,32.7],"03":[-115.1,22.9,-109.4,28],
+  "04":[-92.5,17.8,-90.4,20.6],"05":[-103.1,24.5,-99.8,29.9],"06":[-104.7,18.7,-103.5,19.6],
+  "07":[-94.3,14.5,-90.4,18],"08":[-109,23.6,-103.2,30],"09":[-99.4,19.1,-98.9,19.6],
+  "10":[-107.5,22.3,-103.7,26.8],"11":[-102.1,19.9,-99.7,21.9],"12":[-102.2,16.3,-98,18.8],
+  "13":[-99.4,19.6,-97.9,21.4],"14":[-105.7,19,-101.5,22.8],"15":[-100.6,18.4,-98.6,20.3],
+  "16":[-103.8,17.9,-100,20.4],"17":[-99.6,18.1,-98.6,19.2],"18":[-105.7,21,-103.7,23.1],
+  "19":[-101.2,23.2,-98.4,27.8],"20":[-98.5,15.6,-93.6,18.7],"21":[-98.8,17.9,-96.7,20.9],
+  "22":[-100.6,20,-99,21.7],"23":[-87.5,17.9,-86.7,21.6],"24":[-102.3,21.1,-98.3,24.6],
+  "25":[-109.4,22.3,-106.4,27],"26":[-115.1,26.2,-108.9,32.5],"27":[-92.9,17.2,-90.9,18.7],
+  "28":[-99.4,22.2,-97.1,27.7],"29":[-98.7,19,-97.6,19.9],"30":[-98,17.1,-93.6,22.5],
+  "31":[-90.4,19.5,-87.5,21.7],"32":[-104.4,21,-101,25]
+};
+
+function lvl(s){if(s>=85)return'A/B';if(s>=70)return'C+';if(s>=55)return'C';if(s>=42)return'C-';if(s>=30)return'D+';if(s>=18)return'D';return'E';}
+
+// ── Helper to build cats + catBrands in a single pass ─────────────────────────
+function buildPoiCategories(pR){
+  const cats={}, catBrands={};
+  pR.forEach(p=>{
+    const c=(p.category||p.Category||'Unknown').trim();
+    const b=(p.brand||p.Brand||'').trim();
+    cats[c]=(cats[c]||0)+1;
+    if(!catBrands[c]) catBrands[c]=[];
+    if(b && !catBrands[c].includes(b)) catBrands[c].push(b);
+  });
+  return {cats, catBrands};
+}
+
+let map, bufL=null, mzaL=null, poiMarkerL=null, pinM=null;
+let poiData=null, idx=null, cache={};
+let pin=null, results=null, sugT=null, printOpen=false;
+let lastFeats=[], lastBuf=null;
+
+let analyzeTimer=null;
+function scheduleAnalyze(delay=300){clearTimeout(analyzeTimer);analyzeTimer=setTimeout(()=>analyze(),delay);}
+function syncFromSlide(v){el('bDist').value=parseFloat(v).toFixed(1);if(pin)scheduleAnalyze(0);}
+
+map = L.map('map',{zoomControl:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false,renderer:L.canvas()}).setView([19.43,-99.13],12);
+
+const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© OpenStreetMap',maxZoom:19,keepBuffer:8,updateWhenIdle:true,
+  updateWhenZooming:false,maxNativeZoom:19,tileSize:256,detectRetina:false
+}).addTo(map);
+
+let hideTimer=null;
+function scheduleHide(){
+  clearTimeout(hideTimer);
+  hideTimer=setTimeout(()=>{const ov=document.getElementById('mapOverlay');if(ov){ov.classList.add('hidden');setTimeout(()=>ov.remove(),400);}},800);
+}
+tileLayer.on('load',scheduleHide);
+map.on('moveend zoomend',scheduleHide);
+
+bufL = L.geoJSON(null,{style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.08,dashArray:'6 4'},renderer:L.svg()}).addTo(map);
+mzaL = L.geoJSON(null,{style:{color:'#2d5be3',weight:1,fillColor:'#2d5be3',fillOpacity:0.15},renderer:L.svg()}).addTo(map);
+poiMarkerL = L.layerGroup().addTo(map);
+
+st('load','loading…');
+(async()=>{
+  try{
+    const r=await fetch('data/pob/index.json');
+    if(!r.ok)throw 0;
+    idx=await r.json();
+    el('popSt').textContent=Object.keys(idx).length+' states';
+    el('popSt').style.color='var(--success)';
+    st('ok','ready');
+    el('gBtn').disabled=false;
+  }catch{
+    el('popSt').textContent='index not found';
+    el('popSt').style.color='#c0392b';
+    st('err','data/pob/index.json missing');
+  }
+})();
+
+function tilesFor(buf){
+  if(!idx)return[];
+  const [x0,y0,x1,y1]=turf.bbox(buf);
+  const paths=[];
+  for(const[ent,info]of Object.entries(idx)){
+    const b=SBBOX[ent];if(!b)continue;
+    if(x1<b[0]||x0>b[2]||y1<b[1]||y0>b[3])continue;
+    if(info.strategy==='state') paths.push(`data/pob/${ent}.geojson`);
+    else if(info.strategy==='municipality') info.municipalities.forEach(m=>paths.push(`data/pob/${ent}/${m}.geojson`));
+    else Object.entries(info.municipalities).forEach(([m,ls])=>ls.forEach(l=>paths.push(`data/pob/${ent}/${m}/${l}.geojson`)));
+  }
+  return paths;
+}
+
+async function fetchPop(buf){
+  const paths=tilesFor(buf);
+  const miss=paths.filter(p=>!cache[p]);
+  if(miss.length){
+    st('load',`fetching ${miss.length} tile(s)…`);
+    const res=await Promise.allSettled(miss.map(p=>fetch(p).then(r=>r.ok?r.json():null)));
+    res.forEach((r,i)=>{cache[miss[i]]=r.status==='fulfilled'&&r.value?r.value.features||[]:[];});
+  }
+  const feats=paths.flatMap(p=>cache[p]||[]);
+  const tot=Object.values(cache).reduce((s,f)=>s+f.length,0);
+  el('popSt').textContent=tot.toLocaleString()+' loaded';
+  el('popSt').style.color='var(--success)';
+  return feats;
+}
+
+const addr=el('addr');
+addr.addEventListener('input',()=>{clearTimeout(sugT);const q=addr.value.trim();if(q.length<3){el('sug').style.display='none';return;}sugT=setTimeout(()=>suggest(q),350);});
+addr.addEventListener('keydown',e=>{if(e.key==='Enter'){el('sug').style.display='none';doGeocode();}});
+document.addEventListener('click',e=>{if(!e.target.closest('#addr')&&!e.target.closest('#sug'))el('sug').style.display='none';});
+
+async function suggest(q){
+  try{
+    const d=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`,{headers:{'Accept-Language':'es'}}).then(r=>r.json());
+    const s=el('sug');s.innerHTML='';
+    if(!d.length){s.style.display='none';return;}
+    const rc=addr.getBoundingClientRect();
+    s.style.cssText=`display:block;top:${rc.bottom+2}px;left:${rc.left}px;width:${rc.width}px`;
+    d.forEach(i=>{const v=document.createElement('div');v.className='si';v.textContent=i.display_name;v.onclick=()=>{addr.value=i.display_name;s.style.display='none';placePin(+i.lat,+i.lon,i.display_name);};s.appendChild(v);});
+  }catch{}
+}
+
+async function doGeocode(){
+  const q=addr.value.trim();if(!q)return;
+  st('load','geocoding…');
+  try{
+    const d=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,{headers:{'Accept-Language':'es'}}).then(r=>r.json());
+    if(!d.length){st('ok','not found');toast('Address not found');return;}
+    placePin(+d[0].lat,+d[0].lon,d[0].display_name);
+  }catch{st('err','geocode failed');toast('Geocode failed');}
+}
+
+function placePin(lat,lng,label){
+  pin=[lat,lng];
+  if(pinM)map.removeLayer(pinM);
+  pinM=L.marker([lat,lng],{
+    icon:L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#2d5be3;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(45,91,227,.5)"></div>',iconSize:[14,14],iconAnchor:[7,7]}),
+    draggable:true
+  }).addTo(map).bindPopup(`<b>${label}</b>`);
+  pinM.on('dragend',e=>{pin=[e.target.getLatLng().lat,e.target.getLatLng().lng];scheduleAnalyze(0);});
+  const cur=map.getCenter();
+  if(map.distance([lat,lng],[cur.lat,cur.lng])>50000) map.setView([lat,lng],map.getZoom(),{animate:false});
+  el('aBtn').disabled=false;
+  scheduleAnalyze(0);
+}
+
+function updDisp(v){const u=el('bUnit').value==='miles'?'mi':'km';el('bDisp').textContent=parseFloat(v).toFixed(1)+' '+u;}
+function syncSlide(v){el('bSlide').value=v;updDisp(v);}
+
+let analyzing=false;
+async function analyze(){
+  if(!pin||!idx)return;
+  if(analyzing)return;
+  analyzing=true;
+
+  const dist=parseFloat(el('bDist').value);
+  const unit=el('bUnit').value;
+  if(!dist||dist<=0){analyzing=false;return;}
+  st('load','computing…');
+
+  const pt=turf.point([pin[1],pin[0]]);
+  const buf=turf.buffer(pt,dist,{units:unit});
+  const bArea=turf.area(buf);
+  lastBuf=buf;
+
+  bufL.clearLayers();bufL.addData(buf);
+
+  const feats=await fetchPop(buf);
+  lastFeats=[];
+
+  let tPop=0,nWS=0;
+  const bgR=[],nR=[],intersectedFeats=[];
+
+  feats.forEach(f=>{
+    if(!f.geometry)return;
+    const fa=turf.area(f);if(!fa)return;
+    let pct,ia;
+    try{
+      if(turf.booleanContains(buf,f)){pct=1.0;ia=fa;}
+      else{
+        let ix;try{ix=turf.intersect(f,buf);}catch{return;}
+        if(!ix)return;
+        ia=turf.area(ix);if(!ia)return;
+        const rawPct=ia/fa;
+        pct=rawPct>0.95?1.0:rawPct;
+        if(pct===1.0)ia=fa;
+      }
+    }catch{return;}
+    const pop=parseFloat(f.properties[CFG.popF])||0;
+    tPop+=pop*pct;
+    bgR.push({id:f.properties.CVEGEO||'—',pop:Math.round(pop),pct:(pct*100).toFixed(1),c:Math.round(pop*pct)});
+    intersectedFeats.push(f);
+    const sc=parseFloat(f.properties[CFG.nseF]);
+    if(!isNaN(sc)&&sc>0){nWS+=sc*ia;nR.push({sc:sc.toFixed(1),lv:lvl(sc),pct:(ia/bArea*100).toFixed(1),a:ia});}
+  });
+  bgR.sort((a,b)=>b.c-a.c);
+  nR.sort((a,b)=>b.a-a.a);
+  lastFeats=intersectedFeats;
+
+  mzaL.clearLayers();
+  intersectedFeats.forEach(f=>mzaL.addData(f));
+
+  if(!poiData){
+    try{
+      const r=await fetch('data/open_poi.geojson');
+      if(r.ok){poiData=await r.json();el('poiSt').textContent=(poiData.features?.length||0).toLocaleString()+' loaded';el('poiSt').style.color='var(--success)';}
+    }catch{}
+  }
+
+  let pCnt=0;const pR=[];
+  poiMarkerL.clearLayers();
+  if(poiData) poiData.features.forEach(f=>{
+    if(!f.geometry)return;
+    let ins=false;
+    try{ins=f.geometry.type==='Point'?turf.booleanPointInPolygon(f,buf):!!turf.intersect(f,buf);}catch{}
+    if(ins){
+      pCnt++;pR.push(f.properties||{});
+      if(f.geometry.type==='Point'){
+        const [lng,lat]=f.geometry.coordinates;
+        L.circleMarker([lat,lng],{radius:5,color:'#e07b39',weight:2,fillColor:'#f7b64f',fillOpacity:0.9})
+          .bindPopup(`<b>${f.properties.brand||''}</b><br/><small>${f.properties.category||''}</small>`)
+          .addTo(poiMarkerL);
+      }
+    }
+  });
+
+  const nAvg=bArea>0?nWS/bArea:null;
+  const nLv=nAvg!==null?lvl(nAvg):null;
+  const isKm=unit==='kilometers';
+  const bAD=isKm?(bArea/1e6).toFixed(2):(bArea/1e6/2.59).toFixed(2);
+
+  results={tPop:Math.round(tPop),bgN:bgR.length,bgR,bAD,bAU:isKm?'sq km':'sq mi',dist,unit,pCnt,pR,nAvg,nLv,nR};
+  render(results);
+  st('ok',`pop ${Math.round(tPop).toLocaleString()} · NSE ${nLv||'—'} · ${pCnt} POI`);
+  el('pBtn').disabled=false;el('cBtn').disabled=false;
+  analyzing=false;
+}
+
+function render(r){
+  el('resCard').style.display='';
+  el('rPop').textContent=r.tPop.toLocaleString();
+  el('rBG').textContent=r.bgN.toLocaleString();
+  el('rArea').textContent=r.bAD;
+  el('rAreaU').textContent=r.bAU;
+  el('rPOI').textContent=r.pCnt.toLocaleString();
+
+  if(r.nLv){
+    const b=el('nseBadge');b.textContent=r.nLv;b.className='nb '+NSE_CL[r.nLv];
+    el('nseVal').textContent=`Score: ${r.nAvg.toFixed(1)}`;
+    el('nseZones').textContent=`${r.nR.length} zones`;
+    if(r.nR.length){
+      const tot=r.nR.reduce((s,z)=>s+z.a,0);
+      const bar=el('nseBarEl'),leg=el('nseLeg');bar.innerHTML='';leg.innerHTML='';
+      const byL={};r.nR.forEach(z=>{byL[z.lv]=(byL[z.lv]||0)+z.a;});
+      Object.entries(byL).forEach(([l,a])=>{
+        const p=(a/tot*100).toFixed(1);
+        const s=document.createElement('div');s.style.cssText=`flex:${p};background:${NSE_C[l]}`;s.title=`${l}: ${p}%`;bar.appendChild(s);
+        const g=document.createElement('div');g.style.cssText='display:flex;align-items:center;gap:3px;font-size:10px;font-family:var(--mono)';
+        g.innerHTML=`<span style="width:8px;height:8px;border-radius:2px;background:${NSE_C[l]};display:inline-block"></span>${l} ${p}%`;leg.appendChild(g);
+      });
+      el('nseBar').style.display='';
+    }
+  } else {
+    el('nseBadge').textContent='—';el('nseBadge').className='nb';
+    el('nseVal').textContent='No NSE data';el('nseZones').textContent='';
+  }
+
+  const tb=el('bgTb');tb.innerHTML='';
+  r.bgR.forEach(row=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="tag">${row.id}</span></td><td>${row.pop.toLocaleString()}</td><td>${row.pct}%</td><td>${row.c.toLocaleString()}</td>`;
+    tb.appendChild(tr);
+  });
+
+  // FIX: single-pass build of cats + catBrands
+  const catEl=el('poiCatsInline');
+  if(r.pR.length){
+    const {cats, catBrands} = buildPoiCategories(r.pR);
+    const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+    const maxN=sorted[0][1];
+    catEl.style.display='flex';
+    catEl.innerHTML=sorted.map(([cat,n])=>{
+      const brands=catBrands[cat]||[];
+      const brandList=brands.length
+        ?`<ul style="margin:4px 0 2px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px">${brands.map(b=>`<li style="font-size:11px;color:var(--muted);padding-left:10px;position:relative"><span style="position:absolute;left:0;color:var(--accent)">·</span>${b}</li>`).join('')}</ul>`
+        :'';
+      return`<div style="padding:6px 0;border-bottom:1px solid var(--rule)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);min-width:28px;text-align:right">${n}</span>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:500;color:var(--text)">${cat}</div>
+            <div style="height:3px;border-radius:2px;background:var(--accent-light);margin-top:3px">
+              <div style="height:100%;border-radius:2px;background:var(--accent);width:${(n/maxN*100).toFixed(1)}%"></div>
+            </div>
+          </div>
+        </div>
+        ${brandList}
+      </div>`;
+    }).join('');
+  } else {
+    catEl.style.display='none';catEl.innerHTML='';
+  }
+}
+
+function clearAll(){
+  if(pinM){map.removeLayer(pinM);pinM=null;}
+  bufL.clearLayers();mzaL.clearLayers();poiMarkerL.clearLayers();
+  pin=null;results=null;analyzing=false;lastFeats=[];lastBuf=null;
+  el('resCard').style.display='none';
+  el('aBtn').disabled=true;el('pBtn').disabled=true;el('cBtn').disabled=true;
+  el('addr').value='';
+  st('ok','cleared');
+}
+
+function togglePrint(){
+  printOpen=!printOpen;
+  el('ps').style.display=printOpen?'block':'none';
+  el('pBtn').textContent=printOpen?'✕ Close':'⎙ Print';
+}
+
+// ── Print map: embedded Leaflet instance in #pp, no canvas/CORS ──────────────
+let printMap = null;
+
+function destroyPrintMap(){
+  if(printMap){ printMap.remove(); printMap=null; }
+}
+
+function buildPrintMap(pinLatLng, bufferGeojson){
+  destroyPrintMap();
+  const mapDiv = document.getElementById('printMapDiv');
+  if(!mapDiv) return;
+
+  const bbox = turf.bbox(bufferGeojson);
+  const corner1 = L.latLng(bbox[1], bbox[0]);
+  const corner2 = L.latLng(bbox[3], bbox[2]);
+
+  printMap = L.map(mapDiv, {
+    zoomControl:false, attributionControl:true,
+    zoomAnimation:false, fadeAnimation:false,
+    dragging:false, scrollWheelZoom:false,
+    doubleClickZoom:false, boxZoom:false,
+    keyboard:false, tap:false, touchZoom:false,
+    renderer:L.svg()
+  });
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors', maxZoom:19
+  }).addTo(printMap);
+
+  L.geoJSON(bufferGeojson,{
+    style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.10,dashArray:'6 4'},
+    renderer:L.svg()
+  }).addTo(printMap);
+
+  L.marker(pinLatLng,{
+    icon:L.divIcon({
+      className:'',
+      html:'<div style="width:14px;height:14px;background:#2d5be3;border:2.5px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(45,91,227,.5)"></div>',
+      iconSize:[14,14], iconAnchor:[7,7]
+    })
+  }).addTo(printMap);
+
+  printMap.fitBounds(L.latLngBounds(corner1, corner2), {padding:[24,24], animate:false});
+}
+
+// ── buildPrintHTML: single-pass POI aggregation ────────────────────────────────
+function buildPrintHTML(r){
+  const title=el('pTitle').value, sub=el('pSub').value, notes=el('pNotes').value;
+
+  const poiHtml=(()=>{
+    if(!r.pR.length) return '';
+    // single pass
+    const {cats, catBrands} = buildPoiCategories(r.pR);
+    const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+    const rows=sorted.map(([cat,n])=>{
+      const brands=catBrands[cat]||[];
+      const bHtml=brands.length
+        ?`<div style="padding:2px 0 6px 48px">${brands.map(b=>`<div style="font-size:11px;color:#6b6760">· ${b}</div>`).join('')}</div>`
+        :'';
+      const borderStyle=bHtml?'none':'1px solid #e0ddd8';
+      return`<tr><td style="padding:5px 8px;border-bottom:${borderStyle};font-weight:600;color:#2d5be3;font-family:'IBM Plex Mono',monospace;vertical-align:top;width:40px">${n}</td><td style="padding:5px 8px;border-bottom:${borderStyle};font-weight:500">${cat}</td></tr>${bHtml?`<tr><td colspan="2" style="padding:0;border-bottom:1px solid #e0ddd8">${bHtml}</td></tr>`:''}`;
+    }).join('');
+    return `<h3 style="font-size:13px;font-weight:600;margin:20px 0 8px">POI by Category (${r.pCnt} total)</h3><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:4px 8px;border-bottom:2px solid #1a1a1a;font-size:11px">#</th><th style="text-align:left;padding:4px 8px;border-bottom:2px solid #1a1a1a;font-size:11px">Category</th></tr></thead><tbody>${rows}</tbody></table>`;
+  })();
+
+  // Embedded Leaflet div — map is rendered live in the print page
+  const mapSection = `<div style="margin-bottom:20px">
+      <div id="printMapDiv" style="width:100%;height:340px;border-radius:6px;border:1px solid #dbd8d0;background:#e8e0d8;overflow:hidden"></div>
+      <div style="font-size:10px;color:#aaa;font-family:'IBM Plex Mono',monospace;margin-top:4px">
+        📍 Buffer center &nbsp;·&nbsp; ${r.dist} ${r.unit} radius &nbsp;·&nbsp; © OpenStreetMap contributors
+      </div>
+    </div>`;
+
+  return `<div style="max-width:800px;margin:0 auto;font-family:'IBM Plex Sans',sans-serif">
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1a1a1a;padding-bottom:14px;margin-bottom:20px">
+      <div>
+        <h1 style="font-size:20px;font-weight:600;margin:0">${title}</h1>
+        ${sub?`<div style="font-size:12px;color:#6b6760">${sub}</div>`:''}
+      </div>
+      <div style="text-align:right;font-size:11px;color:#6b6760;font-family:'IBM Plex Mono',monospace">
+        <div>${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+        <div>Buffer: ${r.dist} ${r.unit} · ${r.bAD} ${r.bAU}</div>
+      </div>
+    </div>
+    ${mapSection}
+    <div style="background:#e8eeff;border:1px solid #a8bff5;border-radius:6px;padding:20px;margin-bottom:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center">
+      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">Population</div><div style="font-size:28px;font-weight:600;color:#2d5be3">${r.tPop.toLocaleString()}</div><div style="font-size:10px;color:#6b6760">area-weighted</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">Manzanas</div><div style="font-size:28px;font-weight:600">${r.bgN}</div><div style="font-size:10px;color:#6b6760">intersected</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">SE Level</div><div style="font-size:28px;font-weight:700;color:${r.nLv?NSE_C[r.nLv]:'#aaa'}">${r.nLv||'—'}</div><div style="font-size:10px;color:#6b6760">score ${r.nAvg?r.nAvg.toFixed(1):'—'}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">POI</div><div style="font-size:28px;font-weight:600">${r.pCnt}</div><div style="font-size:10px;color:#6b6760">within buffer</div></div>
+    </div>
+    ${poiHtml}
+    ${notes?`<div style="margin-top:20px;padding:12px;background:#f5f4f0;border-left:3px solid #2d5be3;font-size:12px"><b>Notes:</b> ${notes}</div>`:''}
+    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #dbd8d0;font-size:10px;color:#aaa;font-family:'IBM Plex Mono',monospace">Population Buffer Analyzer · INEGI CPV 2020</div>
+  </div>`;
+}
+
+// ── doPrint: embedded Leaflet map in print page — no canvas, no CORS ─────────
+function doPrint(){
+  if(!results){toast('Run analysis first');return;}
+  const r=results;
+
+  destroyPrintMap();
+
+  // Build print HTML (includes #printMapDiv placeholder)
+  el('pp').style.display='block';
+  el('pp').innerHTML=buildPrintHTML(r);
+  st('ok','ready');
+
+  // Now that #printMapDiv exists in DOM, init the Leaflet print map
+  if(pin && lastBuf){
+    // Use requestAnimationFrame to ensure DOM is painted before Leaflet init
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        buildPrintMap(pin, lastBuf);
+        // Wait for tiles to load before opening print dialog
+        if(printMap){
+          let fired=false;
+          const openPrint=()=>{ if(fired)return; fired=true; clearTimeout(to); window.print(); setTimeout(()=>{ el('pp').style.display='none'; destroyPrintMap(); },500); };
+          const to=setTimeout(openPrint, 3500); // fallback: open after 3.5s even if tiles not done
+          printMap.once('load', openPrint);
+        } else {
+          setTimeout(()=>{ window.print(); setTimeout(()=>{ el('pp').style.display='none'; },500); },300);
+        }
+      });
+    });
+  } else {
+    setTimeout(()=>{ window.print(); setTimeout(()=>{ el('pp').style.display='none'; },500); },300);
+  }
+}
+
+function el(id){return document.getElementById(id);}
+function st(type,msg){el('dot').className='dot '+(type==='ok'?'ok':type==='load'?'load':'err');el('stxt').textContent=msg;}
+function toast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+updDisp(1);
+</script>
+</body>
+</html>
