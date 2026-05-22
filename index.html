@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -254,7 +253,6 @@ const NSE_CL = {
   'Low':          'nLow'
 };
 
-// Ordered for bar chart display
 const NSE_ORDER = ['High', 'Upper Middle', 'Middle', 'Low'];
 
 function lvl(s){
@@ -264,8 +262,7 @@ function lvl(s){
   return 'Low';
 }
 
-// Area-weighted median: sort by score, walk cumulative area until 50% is crossed
-function weightedMedian(items){ // items: [{sc, a}]
+function weightedMedian(items){
   if(!items.length) return null;
   const sorted = [...items].sort((a,b) => a.sc - b.sc);
   const total  = sorted.reduce((s,x) => s + x.a, 0);
@@ -291,7 +288,6 @@ const SBBOX = {
   "31":[-90.4,19.5,-87.5,21.7],"32":[-104.4,21,-101,25]
 };
 
-// ── Helper: build cats + catBrands in a single pass ──────────────────────────
 function buildPoiCategories(pR){
   const cats={}, catBrands={};
   pR.forEach(p=>{
@@ -304,10 +300,9 @@ function buildPoiCategories(pR){
   return {cats, catBrands};
 }
 
-// ── Manzana fill color by SE level ───────────────────────────────────────────
 function mzaStyle(feature){
   const sc = parseFloat(feature.properties[CFG.nseF]);
-  let fill = '#2d5be3'; // default accent
+  let fill = '#2d5be3';
   if(!isNaN(sc) && sc > 0){
     const level = lvl(sc);
     fill = NSE_C[level];
@@ -340,7 +335,6 @@ tileLayer.on('load',scheduleHide);
 map.on('moveend zoomend',scheduleHide);
 
 bufL = L.geoJSON(null,{style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.08,dashArray:'6 4'},renderer:L.svg()}).addTo(map);
-// mzaL now uses dynamic style function for SE-level coloring
 mzaL = L.geoJSON(null,{style: mzaStyle, renderer:L.svg()}).addTo(map);
 poiMarkerL = L.layerGroup().addTo(map);
 
@@ -375,20 +369,39 @@ function tilesFor(buf){
   return paths;
 }
 
+// ── FIXED: batched fetch to avoid ERR_INSUFFICIENT_RESOURCES ─────────────────
 async function fetchPop(buf){
-  const paths=tilesFor(buf);
-  const miss=paths.filter(p=>!cache[p]);
+  const paths = tilesFor(buf);
+  const miss  = paths.filter(p => !cache[p]);
+
   if(miss.length){
-    st('load',`fetching ${miss.length} tile(s)…`);
-    const res=await Promise.allSettled(miss.map(p=>fetch(p).then(r=>r.ok?r.json():null)));
-    res.forEach((r,i)=>{cache[miss[i]]=r.status==='fulfilled'&&r.value?r.value.features||[]:[];});
+    if(miss.length > 20) toast(`Loading ${miss.length} tiles, please wait…`);
+    st('load', `fetching ${miss.length} tile(s)…`);
+
+    const BATCH = 10; // max concurrent requests
+    for(let i = 0; i < miss.length; i += BATCH){
+      const chunk = miss.slice(i, i + BATCH);
+      const res = await Promise.allSettled(
+        chunk.map(p => fetch(p).then(r => r.ok ? r.json() : null))
+      );
+      res.forEach((r, j) => {
+        cache[miss[i + j]] = r.status === 'fulfilled' && r.value
+          ? r.value.features || []
+          : [];
+      });
+      // Update progress in status bar
+      const done = Math.min(i + BATCH, miss.length);
+      st('load', `fetching… ${done}/${miss.length}`);
+    }
   }
-  const feats=paths.flatMap(p=>cache[p]||[]);
-  const tot=Object.values(cache).reduce((s,f)=>s+f.length,0);
-  el('popSt').textContent=tot.toLocaleString()+' loaded';
-  el('popSt').style.color='var(--success)';
+
+  const feats = paths.flatMap(p => cache[p] || []);
+  const tot   = Object.values(cache).reduce((s, f) => s + f.length, 0);
+  el('popSt').textContent = tot.toLocaleString() + ' loaded';
+  el('popSt').style.color = 'var(--success)';
   return feats;
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 const addr=el('addr');
 addr.addEventListener('input',()=>{clearTimeout(sugT);const q=addr.value.trim();if(q.length<3){el('sug').style.display='none';return;}sugT=setTimeout(()=>suggest(q),350);});
@@ -475,7 +488,6 @@ async function analyze(){
     const pop=parseFloat(f.properties[CFG.popF])||0;
     tPop+=pop*pct;
 
-    // SE level classification per manzana
     const sc=parseFloat(f.properties[CFG.nseF]);
     const mzaLevel=(!isNaN(sc)&&sc>0)?lvl(sc):null;
 
@@ -526,7 +538,6 @@ async function analyze(){
     }
   });
 
-  // Weighted median (area-weighted) — robust to outlier manzanas
   const nMedian = weightedMedian(nR.map(z=>({sc:parseFloat(z.sc), a:z.a})));
   const nLv     = nMedian !== null ? lvl(nMedian) : null;
   const isKm=unit==='kilometers';
@@ -554,10 +565,8 @@ function render(r){
     if(r.nR.length){
       const tot=r.nR.reduce((s,z)=>s+z.a,0);
       const bar=el('nseBarEl'),leg=el('nseLeg');bar.innerHTML='';leg.innerHTML='';
-      // Group by level
       const byL={};
       r.nR.forEach(z=>{byL[z.lv]=(byL[z.lv]||0)+z.a;});
-      // Render in defined order
       NSE_ORDER.forEach(l=>{
         if(!byL[l])return;
         const p=(byL[l]/tot*100).toFixed(1);
@@ -627,7 +636,6 @@ function togglePrint(){
   el('pBtn').textContent=printOpen?'✕ Close':'⎙ Print';
 }
 
-// ── Print map ────────────────────────────────────────────────────────────────
 let printMap = null;
 
 function destroyPrintMap(){
@@ -656,7 +664,6 @@ function buildPrintMap(pinLatLng, bufferGeojson, featureList){
     attribution:'© OpenStreetMap contributors', maxZoom:19
   }).addTo(printMap);
 
-  // Draw manzanas colored by SE level
   if(featureList && featureList.length){
     L.geoJSON({type:'FeatureCollection',features:featureList},{
       style: mzaStyle,
@@ -680,7 +687,6 @@ function buildPrintMap(pinLatLng, bufferGeojson, featureList){
   printMap.fitBounds(L.latLngBounds(corner1, corner2), {padding:[24,24], animate:false});
 }
 
-// ── buildPrintHTML ────────────────────────────────────────────────────────────
 function buildPrintHTML(r){
   const title=el('pTitle').value, sub=el('pSub').value, notes=el('pNotes').value;
 
@@ -739,7 +745,6 @@ function buildPrintHTML(r){
   </div>`;
 }
 
-// ── doPrint ───────────────────────────────────────────────────────────────────
 function doPrint(){
   if(!results){toast('Run analysis first');return;}
   const r=results;
