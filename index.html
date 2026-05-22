@@ -49,9 +49,11 @@ input:focus,select:focus{border-color:var(--accent);}
 .sl{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;}
 .sv{font-size:22px;font-weight:600;line-height:1.2;margin-top:2px;} .sv.ac{color:var(--accent);}
 .ss{font-size:10px;color:var(--muted);margin-top:2px;}
-.nb{display:inline-block;font-family:var(--mono);font-weight:700;font-size:20px;padding:2px 10px;border-radius:4px;margin-top:2px;}
-.nAB{background:#1a3a6e;color:#fff;} .nCp{background:#2d5be3;color:#fff;} .nC{background:#5b8ff9;color:#fff;}
-.nCm{background:#93b8fc;color:#1a1a1a;} .nDp{background:#f7b64f;color:#1a1a1a;} .nD{background:#e07b39;color:#fff;} .nE{background:#c0392b;color:#fff;}
+.nb{display:inline-block;font-family:var(--mono);font-weight:700;font-size:16px;padding:3px 10px;border-radius:4px;margin-top:2px;}
+.nHigh{background:#1a3a6e;color:#fff;}
+.nUpperMiddle{background:#2d5be3;color:#fff;}
+.nMiddle{background:#5b8ff9;color:#fff;}
+.nLow{background:#c0392b;color:#fff;}
 .lt{width:100%;border-collapse:collapse;font-size:12px;}
 .lt th{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:left;padding:4px 6px;border-bottom:1px solid var(--border);}
 .lt td{padding:5px 6px;border-bottom:1px solid var(--rule);}
@@ -140,7 +142,7 @@ input[type=range]{width:100%;margin-top:18px;accent-color:var(--accent);}
         <div class="cb" style="display:flex;flex-direction:column;gap:10px">
           <div class="sg">
             <div class="st"><div class="sl">Population</div><div class="sv ac" id="rPop">—</div><div class="ss">area-weighted</div></div>
-            <div class="st"><div class="sl">Manzanas</div><div class="sv" id="rBG">—</div><div class="ss">intersected</div></div>
+            <div class="st"><div class="sl">Blocks</div><div class="sv" id="rBG">—</div><div class="ss">intersected</div></div>
             <div class="st"><div class="sl">Buffer Area</div><div class="sv" id="rArea">—</div><div class="ss" id="rAreaU">sq km</div></div>
             <div class="st"><div class="sl">Open POI</div><div class="sv" id="rPOI">—</div><div class="ss">within buffer</div></div>
           </div>
@@ -183,6 +185,33 @@ input[type=range]{width:100%;margin-top:18px;accent-color:var(--accent);}
         </div>
       </div>
 
+      <!-- SE Legend -->
+      <div class="card">
+        <div class="ch">🏷 SE Level Legend</div>
+        <div class="cb" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+            <span style="width:14px;height:14px;border-radius:3px;background:#1a3a6e;display:inline-block;flex-shrink:0"></span>
+            <span style="font-family:var(--mono);font-weight:600;color:#1a3a6e;min-width:90px">High</span>
+            <span style="color:var(--muted);font-size:11px">score ≥ 85</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+            <span style="width:14px;height:14px;border-radius:3px;background:#2d5be3;display:inline-block;flex-shrink:0"></span>
+            <span style="font-family:var(--mono);font-weight:600;color:#2d5be3;min-width:90px">Upper Middle</span>
+            <span style="color:var(--muted);font-size:11px">score ≥ 70</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+            <span style="width:14px;height:14px;border-radius:3px;background:#5b8ff9;display:inline-block;flex-shrink:0"></span>
+            <span style="font-family:var(--mono);font-weight:600;color:#5b8ff9;min-width:90px">Middle</span>
+            <span style="color:var(--muted);font-size:11px">score ≥ 60</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+            <span style="width:14px;height:14px;border-radius:3px;background:#c0392b;display:inline-block;flex-shrink:0"></span>
+            <span style="font-family:var(--mono);font-weight:600;color:#c0392b;min-width:90px">Low</span>
+            <span style="color:var(--muted);font-size:11px">score &lt; 60</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -206,8 +235,44 @@ input[type=range]{width:100%;margin-top:18px;accent-color:var(--accent);}
 
 <script>
 const CFG = { popF:'POBTOT', nseF:'score_nse' };
-const NSE_C = {'A/B':'#1a3a6e','C+':'#2d5be3','C':'#5b8ff9','C-':'#93b8fc','D+':'#f7b64f','D':'#e07b39','E':'#c0392b'};
-const NSE_CL = {'A/B':'nAB','C+':'nCp','C':'nC','C-':'nCm','D+':'nDp','D':'nD','E':'nE'};
+
+// ── SE level definitions ──────────────────────────────────────────────────────
+const NSE_C = {
+  'High':         '#1a3a6e',
+  'Upper Middle': '#2d5be3',
+  'Middle':       '#5b8ff9',
+  'Low':          '#c0392b'
+};
+const NSE_CL = {
+  'High':         'nHigh',
+  'Upper Middle': 'nUpperMiddle',
+  'Middle':       'nMiddle',
+  'Low':          'nLow'
+};
+
+// Ordered for bar chart display
+const NSE_ORDER = ['High', 'Upper Middle', 'Middle', 'Low'];
+
+function lvl(s){
+  if(s >= 85) return 'High';
+  if(s >= 70) return 'Upper Middle';
+  if(s >= 60) return 'Middle';
+  return 'Low';
+}
+
+// Area-weighted median: sort by score, walk cumulative area until 50% is crossed
+function weightedMedian(items){ // items: [{sc, a}]
+  if(!items.length) return null;
+  const sorted = [...items].sort((a,b) => a.sc - b.sc);
+  const total  = sorted.reduce((s,x) => s + x.a, 0);
+  let cum = 0;
+  for(const x of sorted){
+    cum += x.a;
+    if(cum >= total * 0.5) return x.sc;
+  }
+  return sorted[sorted.length-1].sc;
+}
+
 const SBBOX = {
   "01":[-103,21.6,-101.7,22.6],"02":[-118.4,28,-113.8,32.7],"03":[-115.1,22.9,-109.4,28],
   "04":[-92.5,17.8,-90.4,20.6],"05":[-103.1,24.5,-99.8,29.9],"06":[-104.7,18.7,-103.5,19.6],
@@ -222,9 +287,7 @@ const SBBOX = {
   "31":[-90.4,19.5,-87.5,21.7],"32":[-104.4,21,-101,25]
 };
 
-function lvl(s){if(s>=85)return'A/B';if(s>=70)return'C+';if(s>=55)return'C';if(s>=42)return'C-';if(s>=30)return'D+';if(s>=18)return'D';return'E';}
-
-// ── Helper to build cats + catBrands in a single pass ─────────────────────────
+// ── Helper: build cats + catBrands in a single pass ──────────────────────────
 function buildPoiCategories(pR){
   const cats={}, catBrands={};
   pR.forEach(p=>{
@@ -235,6 +298,17 @@ function buildPoiCategories(pR){
     if(b && !catBrands[c].includes(b)) catBrands[c].push(b);
   });
   return {cats, catBrands};
+}
+
+// ── Manzana fill color by SE level ───────────────────────────────────────────
+function mzaStyle(feature){
+  const sc = parseFloat(feature.properties[CFG.nseF]);
+  let fill = '#2d5be3'; // default accent
+  if(!isNaN(sc) && sc > 0){
+    const level = lvl(sc);
+    fill = NSE_C[level];
+  }
+  return {color: fill, weight:1, fillColor: fill, fillOpacity: 0.22};
 }
 
 let map, bufL=null, mzaL=null, poiMarkerL=null, pinM=null;
@@ -262,7 +336,8 @@ tileLayer.on('load',scheduleHide);
 map.on('moveend zoomend',scheduleHide);
 
 bufL = L.geoJSON(null,{style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.08,dashArray:'6 4'},renderer:L.svg()}).addTo(map);
-mzaL = L.geoJSON(null,{style:{color:'#2d5be3',weight:1,fillColor:'#2d5be3',fillOpacity:0.15},renderer:L.svg()}).addTo(map);
+// mzaL now uses dynamic style function for SE-level coloring
+mzaL = L.geoJSON(null,{style: mzaStyle, renderer:L.svg()}).addTo(map);
 poiMarkerL = L.layerGroup().addTo(map);
 
 st('load','loading…');
@@ -395,11 +470,27 @@ async function analyze(){
     }catch{return;}
     const pop=parseFloat(f.properties[CFG.popF])||0;
     tPop+=pop*pct;
-    bgR.push({id:f.properties.CVEGEO||'—',pop:Math.round(pop),pct:(pct*100).toFixed(1),c:Math.round(pop*pct)});
-    intersectedFeats.push(f);
+
+    // SE level classification per manzana
     const sc=parseFloat(f.properties[CFG.nseF]);
-    if(!isNaN(sc)&&sc>0){nWS+=sc*ia;nR.push({sc:sc.toFixed(1),lv:lvl(sc),pct:(ia/bArea*100).toFixed(1),a:ia});}
+    const mzaLevel=(!isNaN(sc)&&sc>0)?lvl(sc):null;
+
+    bgR.push({
+      id:f.properties.CVEGEO||'—',
+      pop:Math.round(pop),
+      pct:(pct*100).toFixed(1),
+      c:Math.round(pop*pct),
+      level: mzaLevel,
+      score: (!isNaN(sc)&&sc>0)?sc.toFixed(1):null
+    });
+    intersectedFeats.push(f);
+
+    if(!isNaN(sc)&&sc>0){
+      nWS+=sc*ia;
+      nR.push({sc:sc.toFixed(1),lv:mzaLevel,pct:(ia/bArea*100).toFixed(1),a:ia});
+    }
   });
+
   bgR.sort((a,b)=>b.c-a.c);
   nR.sort((a,b)=>b.a-a.a);
   lastFeats=intersectedFeats;
@@ -431,14 +522,15 @@ async function analyze(){
     }
   });
 
-  const nAvg=bArea>0?nWS/bArea:null;
-  const nLv=nAvg!==null?lvl(nAvg):null;
+  // Weighted median (area-weighted) — robust to outlier manzanas
+  const nMedian = weightedMedian(nR.map(z=>({sc:parseFloat(z.sc), a:z.a})));
+  const nLv     = nMedian !== null ? lvl(nMedian) : null;
   const isKm=unit==='kilometers';
   const bAD=isKm?(bArea/1e6).toFixed(2):(bArea/1e6/2.59).toFixed(2);
 
-  results={tPop:Math.round(tPop),bgN:bgR.length,bgR,bAD,bAU:isKm?'sq km':'sq mi',dist,unit,pCnt,pR,nAvg,nLv,nR};
+  results={tPop:Math.round(tPop),bgN:bgR.length,bgR,bAD,bAU:isKm?'sq km':'sq mi',dist,unit,pCnt,pR,nMedian,nLv,nR};
   render(results);
-  st('ok',`pop ${Math.round(tPop).toLocaleString()} · NSE ${nLv||'—'} · ${pCnt} POI`);
+  st('ok',`pop ${Math.round(tPop).toLocaleString()} · ${nLv||'—'} · ${pCnt} POI`);
   el('pBtn').disabled=false;el('cBtn').disabled=false;
   analyzing=false;
 }
@@ -453,14 +545,18 @@ function render(r){
 
   if(r.nLv){
     const b=el('nseBadge');b.textContent=r.nLv;b.className='nb '+NSE_CL[r.nLv];
-    el('nseVal').textContent=`Score: ${r.nAvg.toFixed(1)}`;
+    el('nseVal').textContent=`Median: ${r.nMedian.toFixed(1)}`;
     el('nseZones').textContent=`${r.nR.length} zones`;
     if(r.nR.length){
       const tot=r.nR.reduce((s,z)=>s+z.a,0);
       const bar=el('nseBarEl'),leg=el('nseLeg');bar.innerHTML='';leg.innerHTML='';
-      const byL={};r.nR.forEach(z=>{byL[z.lv]=(byL[z.lv]||0)+z.a;});
-      Object.entries(byL).forEach(([l,a])=>{
-        const p=(a/tot*100).toFixed(1);
+      // Group by level
+      const byL={};
+      r.nR.forEach(z=>{byL[z.lv]=(byL[z.lv]||0)+z.a;});
+      // Render in defined order
+      NSE_ORDER.forEach(l=>{
+        if(!byL[l])return;
+        const p=(byL[l]/tot*100).toFixed(1);
         const s=document.createElement('div');s.style.cssText=`flex:${p};background:${NSE_C[l]}`;s.title=`${l}: ${p}%`;bar.appendChild(s);
         const g=document.createElement('div');g.style.cssText='display:flex;align-items:center;gap:3px;font-size:10px;font-family:var(--mono)';
         g.innerHTML=`<span style="width:8px;height:8px;border-radius:2px;background:${NSE_C[l]};display:inline-block"></span>${l} ${p}%`;leg.appendChild(g);
@@ -474,12 +570,14 @@ function render(r){
 
   const tb=el('bgTb');tb.innerHTML='';
   r.bgR.forEach(row=>{
+    const levelDot = row.level
+      ? `<span style="width:8px;height:8px;border-radius:50%;background:${NSE_C[row.level]};display:inline-block;margin-right:4px;flex-shrink:0" title="${row.level}${row.score?' ('+row.score+')':''}"></span>`
+      : '';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><span class="tag">${row.id}</span></td><td>${row.pop.toLocaleString()}</td><td>${row.pct}%</td><td>${row.c.toLocaleString()}</td>`;
+    tr.innerHTML=`<td><span class="tag">${row.id}</span></td><td>${row.pop.toLocaleString()}</td><td>${row.pct}%</td><td style="display:flex;align-items:center">${levelDot}${row.c.toLocaleString()}</td>`;
     tb.appendChild(tr);
   });
 
-  // FIX: single-pass build of cats + catBrands
   const catEl=el('poiCatsInline');
   if(r.pR.length){
     const {cats, catBrands} = buildPoiCategories(r.pR);
@@ -525,14 +623,14 @@ function togglePrint(){
   el('pBtn').textContent=printOpen?'✕ Close':'⎙ Print';
 }
 
-// ── Print map: embedded Leaflet instance in #pp, no canvas/CORS ──────────────
+// ── Print map ────────────────────────────────────────────────────────────────
 let printMap = null;
 
 function destroyPrintMap(){
   if(printMap){ printMap.remove(); printMap=null; }
 }
 
-function buildPrintMap(pinLatLng, bufferGeojson){
+function buildPrintMap(pinLatLng, bufferGeojson, featureList){
   destroyPrintMap();
   const mapDiv = document.getElementById('printMapDiv');
   if(!mapDiv) return;
@@ -554,8 +652,16 @@ function buildPrintMap(pinLatLng, bufferGeojson){
     attribution:'© OpenStreetMap contributors', maxZoom:19
   }).addTo(printMap);
 
+  // Draw manzanas colored by SE level
+  if(featureList && featureList.length){
+    L.geoJSON({type:'FeatureCollection',features:featureList},{
+      style: mzaStyle,
+      renderer:L.svg()
+    }).addTo(printMap);
+  }
+
   L.geoJSON(bufferGeojson,{
-    style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.10,dashArray:'6 4'},
+    style:{color:'#b81414',weight:3,fillColor:'#b81414',fillOpacity:0.06,dashArray:'6 4'},
     renderer:L.svg()
   }).addTo(printMap);
 
@@ -570,13 +676,20 @@ function buildPrintMap(pinLatLng, bufferGeojson){
   printMap.fitBounds(L.latLngBounds(corner1, corner2), {padding:[24,24], animate:false});
 }
 
-// ── buildPrintHTML: single-pass POI aggregation ────────────────────────────────
+// ── buildPrintHTML ────────────────────────────────────────────────────────────
 function buildPrintHTML(r){
   const title=el('pTitle').value, sub=el('pSub').value, notes=el('pNotes').value;
 
+  const nseColor = r.nLv ? NSE_C[r.nLv] : '#aaa';
+
+  const legendHtml = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+    ${NSE_ORDER.map(l=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-family:'IBM Plex Mono',monospace">
+      <span style="width:11px;height:11px;border-radius:2px;background:${NSE_C[l]};display:inline-block"></span>${l}
+    </div>`).join('')}
+  </div>`;
+
   const poiHtml=(()=>{
     if(!r.pR.length) return '';
-    // single pass
     const {cats, catBrands} = buildPoiCategories(r.pR);
     const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
     const rows=sorted.map(([cat,n])=>{
@@ -590,13 +703,13 @@ function buildPrintHTML(r){
     return `<h3 style="font-size:13px;font-weight:600;margin:20px 0 8px">POI by Category (${r.pCnt} total)</h3><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:4px 8px;border-bottom:2px solid #1a1a1a;font-size:11px">#</th><th style="text-align:left;padding:4px 8px;border-bottom:2px solid #1a1a1a;font-size:11px">Category</th></tr></thead><tbody>${rows}</tbody></table>`;
   })();
 
-  // Embedded Leaflet div — map is rendered live in the print page
   const mapSection = `<div style="margin-bottom:20px">
-      <div id="printMapDiv" style="width:100%;height:340px;border-radius:6px;border:1px solid #dbd8d0;background:#e8e0d8;overflow:hidden"></div>
-      <div style="font-size:10px;color:#aaa;font-family:'IBM Plex Mono',monospace;margin-top:4px">
-        📍 Buffer center &nbsp;·&nbsp; ${r.dist} ${r.unit} radius &nbsp;·&nbsp; © OpenStreetMap contributors
-      </div>
-    </div>`;
+    <div id="printMapDiv" style="width:100%;height:340px;border-radius:6px;border:1px solid #dbd8d0;background:#e8e0d8;overflow:hidden"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+      <div style="font-size:10px;color:#aaa;font-family:'IBM Plex Mono',monospace">📍 ${r.dist} ${r.unit} radius · © OpenStreetMap contributors</div>
+      ${legendHtml}
+    </div>
+  </div>`;
 
   return `<div style="max-width:800px;margin:0 auto;font-family:'IBM Plex Sans',sans-serif">
     <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1a1a1a;padding-bottom:14px;margin-bottom:20px">
@@ -613,7 +726,7 @@ function buildPrintHTML(r){
     <div style="background:#e8eeff;border:1px solid #a8bff5;border-radius:6px;padding:20px;margin-bottom:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center">
       <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">Population</div><div style="font-size:28px;font-weight:600;color:#2d5be3">${r.tPop.toLocaleString()}</div><div style="font-size:10px;color:#6b6760">area-weighted</div></div>
       <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">Manzanas</div><div style="font-size:28px;font-weight:600">${r.bgN}</div><div style="font-size:10px;color:#6b6760">intersected</div></div>
-      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">SE Level</div><div style="font-size:28px;font-weight:700;color:${r.nLv?NSE_C[r.nLv]:'#aaa'}">${r.nLv||'—'}</div><div style="font-size:10px;color:#6b6760">score ${r.nAvg?r.nAvg.toFixed(1):'—'}</div></div>
+      <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">SE Level</div><div style="font-size:22px;font-weight:700;color:${nseColor};padding:4px 0">${r.nLv||'—'}</div><div style="font-size:10px;color:#6b6760">median ${r.nMedian?r.nMedian.toFixed(1):'—'}</div></div>
       <div><div style="font-size:10px;text-transform:uppercase;color:#6b6760;font-family:'IBM Plex Mono',monospace">POI</div><div style="font-size:28px;font-weight:600">${r.pCnt}</div><div style="font-size:10px;color:#6b6760">within buffer</div></div>
     </div>
     ${poiHtml}
@@ -622,29 +735,25 @@ function buildPrintHTML(r){
   </div>`;
 }
 
-// ── doPrint: embedded Leaflet map in print page — no canvas, no CORS ─────────
+// ── doPrint ───────────────────────────────────────────────────────────────────
 function doPrint(){
   if(!results){toast('Run analysis first');return;}
   const r=results;
 
   destroyPrintMap();
 
-  // Build print HTML (includes #printMapDiv placeholder)
   el('pp').style.display='block';
   el('pp').innerHTML=buildPrintHTML(r);
   st('ok','ready');
 
-  // Now that #printMapDiv exists in DOM, init the Leaflet print map
   if(pin && lastBuf){
-    // Use requestAnimationFrame to ensure DOM is painted before Leaflet init
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
-        buildPrintMap(pin, lastBuf);
-        // Wait for tiles to load before opening print dialog
+        buildPrintMap(pin, lastBuf, lastFeats);
         if(printMap){
           let fired=false;
           const openPrint=()=>{ if(fired)return; fired=true; clearTimeout(to); window.print(); setTimeout(()=>{ el('pp').style.display='none'; destroyPrintMap(); },500); };
-          const to=setTimeout(openPrint, 3500); // fallback: open after 3.5s even if tiles not done
+          const to=setTimeout(openPrint, 3500);
           printMap.once('load', openPrint);
         } else {
           setTimeout(()=>{ window.print(); setTimeout(()=>{ el('pp').style.display='none'; },500); },300);
